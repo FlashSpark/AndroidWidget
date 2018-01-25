@@ -6,4 +6,7 @@
 
     <color name="colorSapphireBlue">#50082567</color>
     <color name="colorBackGray">#50CCCCCC</color>
+
+    <color name="white">#FFFFFF</color>
+    <color name="whiteMouse">#50BDC0BA</color>
 </resources>

@@ -20,6 +20,7 @@
         <receiver android:name=".PoemWidget">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.xytech.android.widget.click"/>
             </intent-filter>
 
             <meta-data
