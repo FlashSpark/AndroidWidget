@@ -9,7 +9,9 @@
         android:roundIcon="@drawable/recite"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainUIActivity">
+        <activity
+            android:name=".MainUIActivity"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -20,7 +22,7 @@
         <receiver android:name=".PoemWidget">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.xytech.android.widget.click"/>
+                <action android:name="com.xytech.android.widget.click" />
             </intent-filter>
 
             <meta-data

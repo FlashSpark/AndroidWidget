@@ -1,21 +1,21 @@
 package com.mt.android.finance.miuitargetwidget;
 
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
+import com.mt.android.finance.miuitargetwidget.tool.DirectionUtil;
 import com.mt.android.finance.miuitargetwidget.tool.MtTimer;
 
 import java.util.Locale;
 
-public class MainUIActivity extends AppCompatActivity implements View.OnTouchListener {
+public class MainUIActivity extends AppCompatActivity implements GestureDetector.OnGestureListener {
 
     private static final String TAG = "Gesture";
     private static final int SECOND = 1000;
@@ -28,6 +28,9 @@ public class MainUIActivity extends AppCompatActivity implements View.OnTouchLis
 
     ImageButton btnStart;
     ImageButton btnStop;
+
+    private GestureDetector mGestureDetector;
+    private MoveEventFilter moveEventFilter;
 
     private TextView tvCountDownTime;
     private CircularSeekBar seekBar;
@@ -48,14 +51,14 @@ public class MainUIActivity extends AppCompatActivity implements View.OnTouchLis
         seekBar.setProgress(getProgressValue());
     }
 
-    private void countDown(){
-        timeTicks ++;
+    private void countDown() {
+        timeTicks++;
         int remainingTime = curMinute * 60 + curSecond;
-        if(remainingTime <= 0){
+        if (remainingTime <= 0) {
             timer.stop();
             return;
         }
-        if( timeTicks % (SECOND / CIRCLE) == 0) {
+        if (timeTicks % (SECOND / CIRCLE) == 0) {
             remainingTime = remainingTime - 1;
             curMinute = remainingTime / 60;
             curSecond = remainingTime % 60;
@@ -64,12 +67,13 @@ public class MainUIActivity extends AppCompatActivity implements View.OnTouchLis
 
     /**
      * 换算至 0 - 120
+     *
      * @return 0 - 120 之间的一个float值
      */
-    private float getProgressValue(){
+    private float getProgressValue() {
         int remainingSeconds = curMinute * 60 + curSecond;
         int progressSeconds = totalSecond - remainingSeconds;
-        if(totalSecond == 0){
+        if (totalSecond == 0) {
             return 0;
         }
         float percent = (float) progressSeconds / (float) totalSecond;
@@ -77,10 +81,10 @@ public class MainUIActivity extends AppCompatActivity implements View.OnTouchLis
         return 120 * percent;
     }
 
-    private void setValue(){
+    private void setValue() {
         String text = tvCountDownTime.getText().toString();
-        String [] values = text.split(":");
-        if(values.length == 2){
+        String[] values = text.split(":");
+        if (values.length == 2) {
             curMinute = Integer.parseInt(values[0]);
             curSecond = Integer.parseInt(values[1]);
         }
@@ -95,6 +99,7 @@ public class MainUIActivity extends AppCompatActivity implements View.OnTouchLis
         curMinute = 0;
         curSecond = 0;
         totalSecond = 0;
+        moveEventFilter = new MoveEventFilter();
     }
 
     private void bindView() {
@@ -102,14 +107,13 @@ public class MainUIActivity extends AppCompatActivity implements View.OnTouchLis
         tvCountDownTime = findViewById(R.id.time);
         btnStart = findViewById(R.id.btn_tm_start);
         btnStop = findViewById(R.id.btn_tm_stop);
-        mGestureDetector = new GestureDetector(this, new XYGestureListener());
+        mGestureDetector = new GestureDetector(this, this);
     }
 
     private void setPageListener() {
 
 //        btnStop.setOnClickListener(this);
 //        btnStart.setOnClickListener(this);
-        mGestureDetector.setOnDoubleTapListener(new XYGestureListener());
     }
 
     @Override
@@ -155,77 +159,76 @@ public class MainUIActivity extends AppCompatActivity implements View.OnTouchLis
 //        }
 //    }
 
-    private GestureDetector mGestureDetector;
 
     @Override
-    public boolean onTouch(View view, MotionEvent motionEvent) {
+    public boolean onTouchEvent(MotionEvent motionEvent) {
         return mGestureDetector.onTouchEvent(motionEvent);
     }
 
-    /*
-    *
-    * 手势监听类
-    * */
-    class XYGestureListener extends GestureDetector.SimpleOnGestureListener {
-        public XYGestureListener() {
-            super();
+    @Override
+    public boolean onDown(MotionEvent motionEvent) {
+        Log.d(TAG, "GESTURE:DOWN");
+        return false;
+    }
+
+    @Override
+    public void onShowPress(MotionEvent motionEvent) {
+        Log.d(TAG, "GESTURE:SHOW_PRESS");
+
+    }
+
+    @Override
+    public boolean onSingleTapUp(MotionEvent motionEvent) {
+        Log.d(TAG, "GESTURE:SINGLE_TAP_UP");
+        return false;
+    }
+
+    @Override
+    public boolean onScroll(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
+        Log.d(TAG, "GESTURE:SCROLL");
+        if (!moveEventFilter.isAvailable()) {
+            return false;
         }
-        @Override
-        public boolean onDoubleTap(MotionEvent e) {
-            Log.e(TAG, "onDoubleTap");
-            return true;
+        int d = DirectionUtil.getDirection(motionEvent.getX(), motionEvent.getY(), motionEvent1.getX(), motionEvent1.getY());
+        if (d == DirectionUtil.Direction.UP && curMinute < 99) {
+            curMinute++;
+        } else if (d == DirectionUtil.Direction.DOWN && curMinute > 0) {
+            curMinute--;
+        } else if (d == DirectionUtil.Direction.RIGHT && curSecond < 59) {
+            curSecond++;
+        } else if (d == DirectionUtil.Direction.LEFT && curSecond > 0) {
+            curSecond--;
+        }
+        updateUI();
+
+        return false;
+    }
+
+    @Override
+    public void onLongPress(MotionEvent motionEvent) {
+        Log.d(TAG, "GESTURE:LONG PRESS");
+    }
+
+    @Override
+    public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
+        Log.d(TAG, "GESTURE:FLING");
+        return false;
+    }
+
+    private class MoveEventFilter {
+        final int limit = 6;
+        int value;
+
+        public MoveEventFilter() {
+            value = -1;
         }
 
-        @Override
-        public boolean onDoubleTapEvent(MotionEvent e) {
-            Log.e(TAG, "onDoubleTapEvent");
-            return true;
-        }
-
-        @Override
-        public boolean onSingleTapConfirmed(MotionEvent e) {
-            Log.e(TAG, "onSingleTapConfirmed");
-            return true;
-        }
-
-        @Override
-        public boolean onContextClick(MotionEvent e) {
-            Log.e(TAG, "onContextClick");
-            return true;
-        }
-
-        @Override
-        public boolean onDown(MotionEvent e) {
-            Log.e(TAG, "onDown");
-            return true;
-        }
-
-        @Override
-        public void onShowPress(MotionEvent e) {
-            Log.e(TAG, "onShowPress");
-        }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            Log.e(TAG, "onSingleTapUp");
-            return true;
-        }
-
-        @Override
-        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            Log.e(TAG, "onScroll");
-            return true;
-        }
-
-        @Override
-        public void onLongPress(MotionEvent e) {
-            Log.e(TAG, "onLongPress");
-        }
-
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            Log.e(TAG, "onFling");
-            return true;
+        public boolean isAvailable() {
+            value++;
+            if (value == limit) {
+                value = -1;
+            }
+            return value == 0;
         }
     }
 }
